@@ -1,0 +1,39 @@
+{
+    "categories":[
+        {
+            "id": 0,
+            "name":"Tất cả",           
+            "img":"0.png"
+        },
+        {
+            "id": 1,
+            "name":"Giày ",           
+            "img":"1.png"
+        },
+        {
+            "id": 2,
+            "name":"Đồng hồng",           
+            "img":"2.png"
+        },
+        {
+            "id": 3,
+            "name":"Túi xách",           
+            "img":"3.png"
+        },
+        {
+            "id":4,
+            "name":"Điện thoại",           
+            "img":"4.png"
+        },
+        {
+            "id": 5,
+            "name":"Máy tính",           
+            "img":"5.png"
+        },
+        {
+            "id": 6,
+            "name":"Trang sức",           
+            "img":"6.png"
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "product":
+    [    
+        {
+           "id": 1,
+            "name":"Giày cao gót",           
+            "img":"1.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 650000,           
+            "cateId": 1,           
+            "percent":"10"
+
+        },
+        {
+            "id": 2,
+            "name":"Đồng hồngdfgsjahdkjn;lkasd;laskd;lađâs",           
+            "img":"2.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 5500000,           
+            "cateId": 1,           
+            "percent":"30"    
+        },
+        {
+            "id": 3,
+            "name":"Túi xách",           
+            "img":"3.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 2100000,           
+            "cateId": 1,           
+            "percent":"15"    
+        },
+        {
+            "id": 4,
+            "name":"Điện thoại",           
+            "img":"4.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 12100000,           
+            "cateId": 1,           
+            "percent":"45" 
+        },
+        {
+            "id": 5,
+            "name":"Máy tính",           
+            "img":"5.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 21000000,           
+            "cateId": 1,           
+            "percent":"20"
+        },
+        {
+            "id": 6,
+           "name":"Trang sức",           
+            "img":"6.png",
+            "description":"zzzzzzzzzzzzzz",
+            "price": 8100000,           
+            "cateId": 1,           
+            "percent":"15"
+        }
+       
+    ]
+}
