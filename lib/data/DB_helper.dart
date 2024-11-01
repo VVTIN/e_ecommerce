@@ -16,17 +16,18 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
-    return openDatabase(join(await getDatabasesPath(), "app_fashion.db"),
-        onCreate: (db, version) {
-      db.execute(
-          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT,emailAddress TEXT)'); // Thêm avatarUrl
-      db.execute(
-          'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
-      db.execute(
-          'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER)');
-    }, version: 2);
-  }
+ Future<Database> _initDatabase() async {
+  return openDatabase(join(await getDatabasesPath(), "fashion.db"),
+      onCreate: (db, version) {
+    db.execute(
+        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT)');
+    db.execute(
+        'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+    db.execute(
+        'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER, userId INTEGER, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+  }, version: 1); 
+}
+
 
   // User Management account
   //sign up
@@ -199,6 +200,8 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+
+//profile
   Future<void> updateUser(int userId, Map<String, dynamic> userData) async {
     final db = await database;
     await db.update(
@@ -208,14 +211,11 @@ class DatabaseHelper {
       whereArgs: [userId],
     );
   }
-
-//profile
   Future<Map<String, dynamic>?> getProfile() async {
     final db = await database;
     List<Map<String, dynamic>> users = await db.query('users', limit: 1);
     return users.isNotEmpty ? users.first : null;
   }
-
   // Get user by ID profile
   Future<List<Map<String, dynamic>>> getUserById(int userId) async {
     final db = await database;
@@ -228,6 +228,7 @@ class DatabaseHelper {
     return result.isNotEmpty ? result : [];
   }
 
+
 // Update user avatar
   Future<void> updateUserAvatar(int userId, String avatarUrl) async {
     final db = await database;
@@ -239,36 +240,43 @@ class DatabaseHelper {
     );
   }
 
+
   // Address Functions
-   Future<void> addOrUpdateAddress(Map<String, dynamic> address, {bool setAsDefault = false}) async {
+  // Add or update address with user ID
+  Future<void> addOrUpdateAddress(Map<String, dynamic> address, {required bool setAsDefault}) async {
     final db = await database;
-
-    // Insert the address into the Address table
-    int id = await db.insert('Address', address);
-
-    // If this address is to be the default or it's the only address, update it as default
-    if (setAsDefault || (await getDefaultAddress()) == null) {
-      await setDefaultAddress(id);
+    int userId = CurrentUser().id!;
+    address['userId'] = userId;
+    if (setAsDefault) {
+      await db.update(
+        'Address',
+        {'isDefault': 0},
+        where: 'userId = ?',
+        whereArgs: [userId],
+      );
     }
-  }
-
-  // Retrieve the default address for checkout
-  Future<Map<String, dynamic>?> getDefaultAddress() async {
-    final db = await database;
-    List<Map<String, dynamic>> result = await db.query(
+    await db.insert(
       'Address',
-      where: 'isDefault = ?',
-      whereArgs: [1],
-      limit: 1,
+      address,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
-
-    return result.isNotEmpty ? result.first : null;
   }
-
+ Future<Map<String, dynamic>?> getDefaultAddress(int userId) async {
+    final db = await database; 
+    List<Map<String, dynamic>> result = await db.query(
+      'Address', 
+      where: 'userId = ? AND isDefault = ?', 
+      whereArgs: [userId, 1]
+    );
+    
+    if (result.isNotEmpty) {
+      return result.first; 
+    }
+    return null; 
+  }
   // Set a specific address as default
   Future<void> setDefaultAddress(int id) async {
     final db = await database;
-
     await db.update('Address', {'isDefault': 0});
     await db.update(
       'Address',
@@ -277,29 +285,22 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
-
   // Edit an existing address
-  Future<void> updateAddress(int id, Map<String, dynamic> addressData) async {
+  Future<void> updateAddress(int id, Map<String, dynamic> address) async {
     final db = await database;
-
     await db.update(
       'Address',
-      addressData,
+      address,
       where: 'id = ?',
       whereArgs: [id],
     );
-
-    if (addressData['isDefault'] == 1) {
-      await setDefaultAddress(id);
-    }
   }
-
   // Delete an address
   Future<void> deleteAddress(int id) async {
     final db = await database;
     await db.delete('Address', where: 'id = ?', whereArgs: [id]);
 
-    final defaultAddress = await getDefaultAddress();
+    final defaultAddress = await getDefaultAddress(CurrentUser().id!);
     if (defaultAddress == null) {
       List<Map<String, dynamic>> remainingAddresses = await getAddresses();
       if (remainingAddresses.isNotEmpty) {
@@ -307,11 +308,19 @@ class DatabaseHelper {
       }
     }
   }
-
   // Fetch all addresses
   Future<List<Map<String, dynamic>>> getAddresses() async {
     final db = await database;
     return await db.query('Address');
   }
+  // Fetch all addresses for the current user
+Future<List<Map<String, dynamic>>> getUserAddresses(int userId) async {
+  final db = await database;
+  return await db.query(
+    'Address',
+    where: 'userId = ?',
+    whereArgs: [userId],
+  );
+}
 
 }

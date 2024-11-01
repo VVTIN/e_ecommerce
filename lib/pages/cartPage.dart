@@ -1,4 +1,5 @@
 import 'package:ecommerce/config/const.dart';
+import 'package:ecommerce/model/currentUser.dart';
 import 'package:ecommerce/pages/paymentPage.dart';
 import 'package:ecommerce/widget/cart/quantity_button.dart';
 import 'package:flutter/cupertino.dart';
@@ -131,7 +132,7 @@ class _CartPageState extends State<CartPage> {
                   style: const TextStyle(fontSize: 18,color: Colors.white,fontWeight: FontWeight.bold)),
               ElevatedButton(
                 onPressed: () {
-                  Get.to(() => PaymentPage());
+                  Get.to(() => PaymentPage(userId: CurrentUser().id!,));
                 },
                 child: const Text('Thanh toán', style: TextStyle(fontSize: 18)),
               ),

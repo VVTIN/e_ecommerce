@@ -1,5 +1,6 @@
 import 'package:ecommerce/MainPage.dart';
 import 'package:ecommerce/data/DB_helper.dart';
+import 'package:ecommerce/pages/auth/authencation.dart';
 import 'package:flutter/material.dart';
 
 import 'buttonSign.dart';
@@ -40,7 +41,7 @@ class _SignupFormState extends State<SignupForm> {
     // Điều hướng đến MainPage sau khi đăng ký thành công
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const MainPage()),
+      MaterialPageRoute(builder: (context) => const AuthencationPage()),
     );
   }
 
