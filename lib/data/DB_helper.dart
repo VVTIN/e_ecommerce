@@ -16,20 +16,23 @@ class DatabaseHelper {
     return _database!;
   }
 
- Future<Database> _initDatabase() async {
-  return openDatabase(join(await getDatabasesPath(), "fashion.db"),
-      onCreate: (db, version) {
-    db.execute(
-        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT)');
-    db.execute(
-        'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
-    db.execute(
-        'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER, userId INTEGER, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
-  }, version: 1); 
-}
+  Future<Database> _initDatabase() async {
+    return openDatabase(join(await getDatabasesPath(), "fashion.db"),
+        onCreate: (db, version) {
+      db.execute(
+          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT)');
+      db.execute(
+          'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+      db.execute(
+          'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER, userId INTEGER, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+      // db.execute(
+      //     'CREATE TABLE OrderHistory(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, orderDate TEXT, status TEXT, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+      db.execute(
+          'CREATE TABLE NotificationSettings(id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, orderNotification INTEGER DEFAULT 1, promotionNotification INTEGER DEFAULT 1, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+    }, version: 1);
+  }
 
-
-  // User Management account
+  // 1
   //sign up
   Future<void> createUser(String username, String email, String password,
       {String? avatarUrl}) async {
@@ -41,7 +44,7 @@ class DatabaseHelper {
         'email': email,
         'emailAddress': email,
         'password': password,
-        'avatarUrl': avatarUrl 
+        'avatarUrl': avatarUrl
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -60,15 +63,13 @@ class DatabaseHelper {
     return result.isNotEmpty ? result : [];
   }
 
-  // Cart Management
+  //2
   //add to cart
   Future<void> addToCart(int productId, int quantity, double price) async {
     final db = await database;
     if (CurrentUser().id == null) {
-      throw Exception("User is not logged in. Cannot add to cart.");
+      throw Exception("Chưa đăng nhập.Bạn không thể thêm vào giỏ hàng");
     }
-
-    // Kiểm tra tồn tại trong giỏ hàng
     var existingItem = await db.query(
       'cart',
       where: 'userId = ? AND productId = ?',
@@ -76,9 +77,7 @@ class DatabaseHelper {
     );
 
     if (existingItem.isNotEmpty) {
-      // Cập nhật số lượng nếu sản phẩm đã tồn tại
-      int existingQuantity =
-          existingItem.first['quantity'] as int; // Ép kiểu về int
+      int existingQuantity = existingItem.first['quantity'] as int;
       await updateCart(productId, existingQuantity + quantity);
     } else {
       await db.insert(
@@ -110,7 +109,6 @@ class DatabaseHelper {
 
     return result;
   }
-
   // Remove item from cart
   Future<void> removeFromCart(int productId) async {
     final db = await database;
@@ -120,7 +118,6 @@ class DatabaseHelper {
       whereArgs: [CurrentUser().id, productId],
     );
   }
-
   // Update item quantity in cart
   Future<void> updateCart(int productId, int quantity) async {
     final db = await database;
@@ -132,6 +129,7 @@ class DatabaseHelper {
     );
   }
 
+//3
 //account
   // Password Complexity Check
   bool _isPasswordValid(String password) {
@@ -201,6 +199,7 @@ class DatabaseHelper {
   }
 
 
+//4
 //profile
   Future<void> updateUser(int userId, Map<String, dynamic> userData) async {
     final db = await database;
@@ -211,11 +210,13 @@ class DatabaseHelper {
       whereArgs: [userId],
     );
   }
+
   Future<Map<String, dynamic>?> getProfile() async {
     final db = await database;
     List<Map<String, dynamic>> users = await db.query('users', limit: 1);
     return users.isNotEmpty ? users.first : null;
   }
+
   // Get user by ID profile
   Future<List<Map<String, dynamic>>> getUserById(int userId) async {
     final db = await database;
@@ -229,6 +230,7 @@ class DatabaseHelper {
   }
 
 
+//5
 // Update user avatar
   Future<void> updateUserAvatar(int userId, String avatarUrl) async {
     final db = await database;
@@ -241,9 +243,10 @@ class DatabaseHelper {
   }
 
 
-  // Address Functions
+  // 6
   // Add or update address with user ID
-  Future<void> addOrUpdateAddress(Map<String, dynamic> address, {required bool setAsDefault}) async {
+  Future<void> addOrUpdateAddress(Map<String, dynamic> address,
+      {required bool setAsDefault}) async {
     final db = await database;
     int userId = CurrentUser().id!;
     address['userId'] = userId;
@@ -261,18 +264,15 @@ class DatabaseHelper {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
- Future<Map<String, dynamic>?> getDefaultAddress(int userId) async {
-    final db = await database; 
-    List<Map<String, dynamic>> result = await db.query(
-      'Address', 
-      where: 'userId = ? AND isDefault = ?', 
-      whereArgs: [userId, 1]
-    );
-    
+  Future<Map<String, dynamic>?> getDefaultAddress(int userId) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query('Address',
+        where: 'userId = ? AND isDefault = ?', whereArgs: [userId, 1]);
+
     if (result.isNotEmpty) {
-      return result.first; 
+      return result.first;
     }
-    return null; 
+    return null;
   }
   // Set a specific address as default
   Future<void> setDefaultAddress(int id) async {
@@ -314,13 +314,96 @@ class DatabaseHelper {
     return await db.query('Address');
   }
   // Fetch all addresses for the current user
-Future<List<Map<String, dynamic>>> getUserAddresses(int userId) async {
-  final db = await database;
-  return await db.query(
-    'Address',
-    where: 'userId = ?',
-    whereArgs: [userId],
-  );
-}
+  Future<List<Map<String, dynamic>>> getUserAddresses(int userId) async {
+    final db = await database;
+    return await db.query(
+      'Address',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+  }
 
+
+  // 7. Quản lý Lịch Sử Đơn Hàng
+  Future<void> addOrderHistory(
+      int userId, String orderDate, String status) async {
+    final db = await database;
+    await db.insert(
+      'OrderHistory',
+      {
+        'userId': userId,
+        'orderDate': orderDate,
+        'status': status,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Lấy lịch sử đơn hàng của người dùng
+  Future<List<Map<String, dynamic>>> getOrderHistory(int userId) async {
+    final db = await database;
+    return await db.query(
+      'OrderHistory',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'orderDate DESC',
+    );
+  }
+
+  // Cập nhật trạng thái đơn hàng
+  Future<void> updateOrderStatus(int orderId, String status) async {
+    final db = await database;
+    await db.update(
+      'OrderHistory',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+  }
+
+  // 8. Quản lý Tùy Chọn Thông Báo
+  Future<void> setNotificationSettings(int userId,
+      {bool? orderNotification, bool? promotionNotification}) async {
+    final db = await database;
+    await db.insert(
+      'NotificationSettings',
+      {
+        'userId': userId,
+        'orderNotification': orderNotification == true ? 1 : 0,
+        'promotionNotification': promotionNotification == true ? 1 : 0,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Lấy trạng thái thông báo của người dùng
+  Future<Map<String, dynamic>?> getNotificationSettings(int userId) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'NotificationSettings',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  // Cập nhật tùy chọn thông báo
+  Future<void> updateNotificationSettings(int userId,
+      {bool? orderNotification, bool? promotionNotification}) async {
+    final db = await database;
+    Map<String, dynamic> updateData = {};
+    if (orderNotification != null) {
+      updateData['orderNotification'] = orderNotification ? 1 : 0;
+    }
+    if (promotionNotification != null) {
+      updateData['promotionNotification'] = promotionNotification ? 1 : 0;
+    }
+    await db.update(
+      'NotificationSettings',
+      updateData,
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+  }
 }

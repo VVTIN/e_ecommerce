@@ -9,6 +9,7 @@ import 'package:ecommerce/model/banner.dart';
 import 'package:ecommerce/pages/auth/authencation.dart';
 import 'package:ecommerce/pages/homePage.dart';
 import 'package:ecommerce/theme/appTheme.dart';
+import 'package:ecommerce/widget/cart/payment/keys.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,8 +25,8 @@ import 'service/remote_service/stripe_servive.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await dotenv.load(fileName: ".env");
-  // Stripe.publishableKey = dotenv.env['STRIPE_PUBLISH_KEY']!;
-  // await Stripe.instance.applySettings();
+  Stripe.publishableKey = Publishablekey;
+  await Stripe.instance.applySettings();
 
   await Hive.initFlutter();
 

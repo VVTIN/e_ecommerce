@@ -3,6 +3,10 @@ import 'package:ecommerce/controller/controller.dart';
 import 'package:ecommerce/model/category.dart';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../MainPage.dart';
+import '../../pages/productPage.dart';
 
 class CategoryCard extends StatefulWidget {
   const CategoryCard({super.key, required this.category});
@@ -25,6 +29,7 @@ class _CategoryCardState extends State<CategoryCard> {
     productController.searchTextEditController.text = widget.category.name;
     productController.searchValue.value = 'cat:${widget.category.name}';
     productController.getProductByCategory(id: widget.category.id);
+    Get.to(() => MainPage());
   }
 
   @override

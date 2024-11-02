@@ -27,7 +27,7 @@ class _ChangePasswordState extends State<ChangePassword> {
         confirmPassword: _confirmPasswordController.text,
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Password changed successfully!")),
+        SnackBar(content: Text("Thay đổi mật khẩu thành công!")),
       );
 
       _currentPasswordController.clear();
@@ -75,7 +75,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                 ),
                 obscureText: true,
               ),
-              SizedBox(height: 10), // Khoảng cách giữa các TextField
+              SizedBox(height: 10), 
               TextField(
                 controller: _newPasswordController,
                 decoration: InputDecoration(
@@ -95,7 +95,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                 ),
                 obscureText: true,
               ),
-              SizedBox(height: 10), // Khoảng cách giữa các TextField
+              SizedBox(height: 10), 
               TextField(
                 controller: _confirmPasswordController,
                 decoration: InputDecoration(

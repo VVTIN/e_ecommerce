@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class AccountCard extends StatelessWidget {
-  const AccountCard({super.key, required this.text, required this.onClick});
+class CardWidget extends StatelessWidget {
+  const CardWidget({super.key, required this.text, required this.onClick});
   final String text;
   final Function() onClick;
   @override

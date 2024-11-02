@@ -1,11 +1,12 @@
 import 'package:ecommerce/data/DB_helper.dart';
 import 'package:ecommerce/pages/auth/authencation.dart';
 import 'package:ecommerce/service/remote_service/auth_service.dart';
-import 'package:ecommerce/widget/setting/account_card.dart';
+import 'package:ecommerce/widget/notification/notification_api.dart';
+import 'package:ecommerce/widget/setting/card_widget.dart';
 import 'package:ecommerce/widget/setting/account_delete.dart';
 import 'package:ecommerce/widget/setting/address/addressWidget.dart';
 import 'package:ecommerce/widget/setting/change_password.dart';
-import 'package:ecommerce/widget/setting/notification_setting.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
@@ -38,6 +39,40 @@ class _AccountPageState extends State<AccountPage> {
         .getUserById(userId)
         .then((result) => result.isNotEmpty ? result.first : null);
   }
+
+//Notification
+  bool _notificationsEnabled = true;
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _loadNotificationSetting();
+  // }
+
+  // // Tải cài đặt thông báo từ SharedPreferences
+  // Future<void> _loadNotificationSetting() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+  //   });
+  // }
+
+  // // Lưu cài đặt thông báo vào SharedPreferences
+  // Future<void> _saveNotificationSetting(bool value) async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool('notificationsEnabled', value);
+  // }
+
+  // // Hàm kiểm tra và hiển thị thông báo
+  // void showNotification(String message) {
+  //   if (_notificationsEnabled) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text(message)),
+  //     );
+  //   } else {
+  //     print("Thông báo bị tắt.");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -89,28 +124,59 @@ class _AccountPageState extends State<AccountPage> {
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      AccountCard(
+                      CardWidget(
                         text: 'Địa điểm',
                         onClick: () => Get.to(() => const AddressWidget()),
                       ),
                       const SizedBox(height: 10),
-                      AccountCard(
+                      CardWidget(
                         text: 'Thông tin cá nhân',
                         onClick: () => Get.to(() => const ProfileUser()),
                       ),
-                      AccountCard(
-                        text: 'Thông báo',
-                        onClick: () => Get.to(() => const NotificationSetting()),
-                      ),
-                      AccountCard(
+                      // Padding(
+                      //   padding: const EdgeInsets.symmetric(vertical: 10),
+                      //   child: Container(
+                      //     height: 60,
+                      //     padding: const EdgeInsets.symmetric(horizontal: 20),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.white,
+                      //       borderRadius:
+                      //           const BorderRadius.all(Radius.circular(12)),
+                      //       border: Border.all(width: 1, color: Colors.grey),
+                      //       boxShadow: [
+                      //         BoxShadow(
+                      //           color: Colors.grey.withOpacity(0.4),
+                      //           spreadRadius: 0.1,
+                      //           blurRadius: 7,
+                      //         )
+                      //       ],
+                      //     ),
+                      //     child: SwitchListTile(
+                      //       title: Text('Bật thông báo'),
+                      //       value: _notificationsEnabled,
+                      //       onChanged: (bool value) {
+                      //         // setState(() {
+                      //         //   // _notificationsEnabled = value;
+                      //         //   // _saveNotificationSetting(value); // Lưu cài đặt
+                      //         // });
+                      //         // // Kiểm tra và gửi thông báo nếu đã bật
+                      //         // if (_notificationsEnabled) {
+                      //         //   showNotification(
+                      //         //       "Chào mừng bạn đã bật thông báo!");
+                      //         // }
+                      //       },
+                      //     ),
+                      //   ),
+                      // ),
+                      CardWidget(
                         text: 'Thay đổi mật khẩu',
                         onClick: () => Get.to(() => const ChangePassword()),
                       ),
-                      AccountCard(
+                      CardWidget(
                         text: 'Xóa tài khoản',
                         onClick: () => Get.to(() => const AccountDelete()),
                       ),
-                      AccountCard(
+                      CardWidget(
                         text: CurrentUser().id != null
                             ? 'Đăng xuất'
                             : 'Đăng nhập',

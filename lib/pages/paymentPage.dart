@@ -1,12 +1,16 @@
 import 'package:ecommerce/model/currentUser.dart';
+import 'package:ecommerce/widget/cart/payment/keys.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:http/http.dart' as http;
 import '../MainPage.dart';
 import '../controller/controller.dart';
 import '../data/DB_helper.dart';
+import 'dart:convert';
 
 class PaymentPage extends StatefulWidget {
-  final int userId; // Add userId as a parameter to identify the user
+  final int userId;
 
   PaymentPage({Key? key, required this.userId}) : super(key: key);
 
@@ -17,41 +21,139 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   final TextEditingController _addressController = TextEditingController();
   String _selectedPaymentMethod = 'PayPal';
-  bool _useDefaultAddress = true; // Toggle for using default or entering a new address
-  Map<String, dynamic>? _defaultAddress; // To hold the default address data
+  bool _useDefaultAddress = true;
+  Map<String, dynamic>? _defaultAddress;
 
   @override
   void initState() {
     super.initState();
-    _getDefaultAddress(); // Get the default address when the page initializes
+    _getDefaultAddress();
   }
 
   Future<void> _getDefaultAddress() async {
-    // Fetch the default address for the specific userId
     _defaultAddress = await DatabaseHelper.dataService.getDefaultAddress(widget.userId);
-    
-    // Check if the default address is null or empty
-    if (_defaultAddress == null || 
-        _defaultAddress!['address'] == null || 
-        _defaultAddress!['address'].isEmpty) {
+    if (_defaultAddress == null || _defaultAddress!['address'] == null || _defaultAddress!['address'].isEmpty) {
       setState(() {
-        _useDefaultAddress = false; // Disable the default address option if it doesn't exist
+        _useDefaultAddress = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Không có địa chỉ mặc định. Vui lòng nhập địa chỉ giao hàng.')),
       );
     } else {
-      setState(() {
-        // Default address is available; keep the checkbox enabled
+      setState(() {});
+    }
+  }
+
+  double amount = 100000; // Updated to meet Stripe's minimum
+  Map<String, dynamic>? intentPaymentData;
+
+  Future<void> showPaymentSheet() async {
+  try {
+    await Stripe.instance.presentPaymentSheet().then((val) {
+      intentPaymentData = null;
+
+      // Clear the cart if needed
+      cartController.clearCart();
+
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thanh toán thành công!')),
+      );
+
+      // Navigate to MainPage after a short delay
+      Future.delayed(const Duration(seconds: 1), () {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => MainPage()),
+          (Route<dynamic> route) => false,
+        );
       });
+    }).onError((errorMsg, sTrace) {
+      if (kDebugMode) {
+        print(errorMsg.toString() + sTrace.toString());
+      }
+    });
+  } on StripeException catch (error) {
+    if (kDebugMode) {
+      print(error);
+    }
+    showDialog(
+      context: context,
+      builder: (context) => const AlertDialog(content: Text('Đã hủy bỏ')),
+    );
+  } catch (errorMsg) {
+    if (kDebugMode) {
+      print(errorMsg);
+    }
+  }
+}
+
+
+  Future<Map<String, dynamic>?> makeIntentForPayment(String amountToBeCharged, String currency) async {
+    try {
+      Map<String, dynamic> paymentInfo = {
+        "amount": amountToBeCharged,
+        "currency": currency,
+        "payment_method_types[]": "card",
+      };
+
+      var responseFromStripeAPI = await http.post(
+        Uri.parse("https://api.stripe.com/v1/payment_intents"),
+        body: paymentInfo,
+        headers: {
+          'Authorization': 'Bearer $Secretkey',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      );
+
+      if (responseFromStripeAPI.statusCode == 200) {
+        return jsonDecode(responseFromStripeAPI.body); // Successfully created payment intent
+      } else {
+        print("Failed to create payment intent: ${responseFromStripeAPI.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tạo thanh toán. Vui lòng thử lại.')),
+        );
+        return null;
+      }
+    } catch (error) {
+      print("Error in makeIntentForPayment: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã xảy ra lỗi khi tạo thanh toán. Vui lòng kiểm tra lại.')),
+      );
+      return null;
+    }
+  }
+
+  Future<void> paymentSheetInitialization(String amountToBeCharged, String currency) async {
+    try {
+      intentPaymentData = await makeIntentForPayment(amountToBeCharged, currency);
+
+      if (intentPaymentData != null) {
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            allowsDelayedPaymentMethods: true,
+            paymentIntentClientSecret: intentPaymentData!["client_secret"],
+            style: ThemeMode.dark,
+            merchantDisplayName: "company ecommerce",
+          ),
+        );
+        await showPaymentSheet();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tạo thanh toán. Vui lòng thử lại.')),
+        );
+      }
+    } catch (errorMsg, s) {
+      if (kDebugMode) {
+        print("Error initializing payment sheet: $errorMsg \n$s");
+      }
     }
   }
 
   void _payWithStripe() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thanh toán qua Stripe thành công!')),
-      );
+      // Multiply by 100 to convert to the smallest currency unit for Stripe
+      paymentSheetInitialization((amount * 100).toInt().toString(), "VND");
+      
     } catch (e) {
       print("Stripe payment error: ${e.toString()}");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,11 +164,9 @@ class _PaymentPageState extends State<PaymentPage> {
 
   void _payWithPayPal() {
     cartController.clearCart();
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Đặt hàng thành công!')),
     );
-
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => MainPage()),
@@ -76,18 +176,14 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   void _submitPayment() {
-    // Determine which address to use
-    String address = _useDefaultAddress 
-        ? (_defaultAddress?['address'] ?? '') 
-        : _addressController.text;
-
+    String address = _useDefaultAddress ? (_defaultAddress?['address'] ?? '') : _addressController.text;
     if (address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng nhập địa chỉ giao hàng.')));
-      return; // Exit if address is empty
+        const SnackBar(content: Text('Vui lòng nhập địa chỉ giao hàng.')),
+      );
+      return;
     }
 
-    // Proceed with payment based on the selected method
     if (_selectedPaymentMethod == 'PayPal') {
       _payWithPayPal();
     } else {
@@ -106,10 +202,7 @@ class _PaymentPageState extends State<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Chọn địa chỉ giao hàng:',
-              style: TextStyle(fontSize: 18),
-            ),
+            const Text('Chọn địa chỉ giao hàng:', style: TextStyle(fontSize: 18)),
             Row(
               children: [
                 Checkbox(
@@ -118,7 +211,7 @@ class _PaymentPageState extends State<PaymentPage> {
                     setState(() {
                       _useDefaultAddress = value ?? true;
                       if (_useDefaultAddress) {
-                        _addressController.clear(); // Clear address field when using default
+                        _addressController.clear();
                       }
                     });
                   },
@@ -126,16 +219,13 @@ class _PaymentPageState extends State<PaymentPage> {
                 const Text('Sử dụng địa chỉ mặc định'),
               ],
             ),
-            if (!_useDefaultAddress) // Show this only if not using the default address
+            if (!_useDefaultAddress)
               TextField(
                 controller: _addressController,
                 decoration: const InputDecoration(hintText: 'Địa chỉ giao hàng'),
               ),
             const SizedBox(height: 20),
-            const Text(
-              'Chọn phương thức thanh toán:',
-              style: TextStyle(fontSize: 18),
-            ),
+            const Text('Chọn phương thức thanh toán:', style: TextStyle(fontSize: 18)),
             RadioListTile(
               title: const Text('Thanh toán tiền mặt'),
               value: 'PayPal',
