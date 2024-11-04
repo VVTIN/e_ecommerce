@@ -44,54 +44,51 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  double amount = 100000; // Updated to meet Stripe's minimum
+  double getAmount() {
+    return cartController.calculateTotalAmount();
+  }
+
   Map<String, dynamic>? intentPaymentData;
 
   Future<void> showPaymentSheet() async {
-  try {
-    await Stripe.instance.presentPaymentSheet().then((val) {
-      intentPaymentData = null;
-
-      // Clear the cart if needed
-      cartController.clearCart();
-
-      // Show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thanh toán thành công!')),
-      );
-
-      // Navigate to MainPage after a short delay
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => MainPage()),
-          (Route<dynamic> route) => false,
+    try {
+      await Stripe.instance.presentPaymentSheet().then((val) {
+        intentPaymentData = null;
+        cartController.clearCart();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thanh toán thành công!')),
         );
+
+        Future.delayed(const Duration(seconds: 1), () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => MainPage()),
+            (Route<dynamic> route) => false,
+          );
+        });
+      }).onError((errorMsg, sTrace) {
+        if (kDebugMode) {
+          print(errorMsg.toString() + sTrace.toString());
+        }
       });
-    }).onError((errorMsg, sTrace) {
+    } on StripeException catch (error) {
       if (kDebugMode) {
-        print(errorMsg.toString() + sTrace.toString());
+        print(error);
       }
-    });
-  } on StripeException catch (error) {
-    if (kDebugMode) {
-      print(error);
-    }
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(content: Text('Đã hủy bỏ')),
-    );
-  } catch (errorMsg) {
-    if (kDebugMode) {
-      print(errorMsg);
+      showDialog(
+        context: context,
+        builder: (context) => const AlertDialog(content: Text('Đã hủy bỏ')),
+      );
+    } catch (errorMsg) {
+      if (kDebugMode) {
+        print(errorMsg);
+      }
     }
   }
-}
 
-
-  Future<Map<String, dynamic>?> makeIntentForPayment(String amountToBeCharged, String currency) async {
+  Future<Map<String, dynamic>?> makeIntentForPayment(int amountToBeCharged, String currency) async {
     try {
       Map<String, dynamic> paymentInfo = {
-        "amount": amountToBeCharged,
+        "amount": amountToBeCharged.toString(),
         "currency": currency,
         "payment_method_types[]": "card",
       };
@@ -106,7 +103,7 @@ class _PaymentPageState extends State<PaymentPage> {
       );
 
       if (responseFromStripeAPI.statusCode == 200) {
-        return jsonDecode(responseFromStripeAPI.body); // Successfully created payment intent
+        return jsonDecode(responseFromStripeAPI.body); 
       } else {
         print("Failed to create payment intent: ${responseFromStripeAPI.body}");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +120,7 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  Future<void> paymentSheetInitialization(String amountToBeCharged, String currency) async {
+  Future<void> paymentSheetInitialization(int amountToBeCharged, String currency) async {
     try {
       intentPaymentData = await makeIntentForPayment(amountToBeCharged, currency);
 
@@ -151,9 +148,12 @@ class _PaymentPageState extends State<PaymentPage> {
 
   void _payWithStripe() async {
     try {
-      // Multiply by 100 to convert to the smallest currency unit for Stripe
-      paymentSheetInitialization((amount * 100).toInt().toString(), "VND");
+      double amount = getAmount();
+      int amountInCents = (amount ).toInt(); 
+
       
+
+      await paymentSheetInitialization(amountInCents, "vnd");
     } catch (e) {
       print("Stripe payment error: ${e.toString()}");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -253,8 +253,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 onPressed: _submitPayment,
                 child: const Text('Xác nhận '),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
-                  textStyle: const TextStyle(fontSize: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
             ),

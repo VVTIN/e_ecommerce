@@ -1,8 +1,9 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:ecommerce/controller/dashboard_controller.dart';
 import 'package:ecommerce/controller/product_controller.dart';
+import 'package:ecommerce/model/currentUser.dart';
 import 'package:ecommerce/pages/categoryPage.dart';
-import 'package:ecommerce/pages/historyPage.dart';
+import 'package:ecommerce/pages/order/orderHistoryPage.dart';
 import 'package:ecommerce/pages/homePage.dart';
 import 'package:ecommerce/pages/accountPage.dart';
 import 'package:ecommerce/pages/productPage.dart';
@@ -45,16 +46,16 @@ class _MainPageState extends State<MainPage> {
             : null,
         body: IndexedStack(
           index: controller.tabIndex,
-          children: const [
+          children:  [
             HomePage(),
             ProductPage(),
-            HistoryPage(),
+            OrderHistoryPage(userId: CurrentUser().id!),
             AccountPage(),
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(
           items: const [
-            Icon(
+            Icon( 
               Icons.home,
               size: 33,
               color: Colors.white,

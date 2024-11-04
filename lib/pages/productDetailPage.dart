@@ -247,15 +247,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
           onPressed: () {
             final currentPrice = widget.product.tags[tagIndex].price;
+
+            // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
             if (cartController.cart.any((item) =>
                 item.product.id == widget.product.id &&
-                item.product.tags[tagIndex] == tagIndex)) {
+                item.product.tags[tagIndex] == widget.product.tags[tagIndex])) {
               cartController.updateQuantity(widget.product, qty);
             } else {
               cartController.addToCart(widget.product, qty, currentPrice);
             }
+
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text('Đã thêm vào giỏ hàng')));
+
             Navigator.of(context).pop();
           },
           child: const Padding(

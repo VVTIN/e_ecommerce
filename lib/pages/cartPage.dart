@@ -91,12 +91,15 @@ class _CartPageState extends State<CartPage> {
                             onPressedMinus: () {
                               if (cartItem.quantity.value > 1) {
                                 cartItem.quantity.value--;
+                                cartController.calculateTotalAmount(); // Update total when quantity decreases
                               } else {
                                 cartController.cart.removeAt(index);
+                                cartController.calculateTotalAmount(); // Update total after removing item
                               }
                             },
                             onPressedAdd: () {
                               cartItem.quantity.value++;
+                              cartController.calculateTotalAmount(); // Update total when quantity increases
                             },
                             qty: () => Text(
                               '${cartItem.quantity.value}',
@@ -114,13 +117,6 @@ class _CartPageState extends State<CartPage> {
         );
       }),
       bottomNavigationBar: Obx(() {
-        double totalAmount = 0;
-        for (var item in cartController.cart) { 
-          double finalPrice =
-              item.price - (item.price * (item.product.discount ?? 0) / 100);
-          totalAmount += finalPrice * item.quantity.value;
-        }
-
         return Container(
           color: Colors.blue,
           padding: const EdgeInsets.all(16.0),
@@ -128,11 +124,17 @@ class _CartPageState extends State<CartPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                  'Tổng: ${NumberFormat('###,###,###').format(totalAmount)} VND',
-                  style: const TextStyle(fontSize: 18,color: Colors.white,fontWeight: FontWeight.bold)),
+                'Tổng: ${NumberFormat('###,###,###').format(cartController.totalAmount.value)} VND',
+                style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
+              ),
               ElevatedButton(
                 onPressed: () {
-                  Get.to(() => PaymentPage(userId: CurrentUser().id!,));
+                  Get.to(() => PaymentPage(
+                        userId: CurrentUser().id!,
+                      ));
                 },
                 child: const Text('Thanh toán', style: TextStyle(fontSize: 18)),
               ),

@@ -18,6 +18,16 @@ class ProductModel {
     this.discount,
   });
 
+  factory ProductModel.productFromJson(Map<String, dynamic> data) {
+    return ProductModel(
+      id: data['id'],
+      name: data['name'] ?? '',
+      description: data['description'] ?? '',
+      images: List<String>.from(data['images'].map((image) => image['url'])),
+      tags: List<Tag>.from(data['tags'].map((tag) => Tag.fromJson(tag))),
+      discount: data['discount'],
+    );
+  }
   // From JSON
   factory ProductModel.popularProductFromJson(Map<String, dynamic> data) {
     return ProductModel(
@@ -40,16 +50,6 @@ class ProductModel {
     );
   }
 
-  factory ProductModel.productFromJson(Map<String, dynamic> data) {
-    return ProductModel(
-      id: data['id'],
-      name: data['name'] ?? '',
-      description: data['description'] ?? '',
-      images: List<String>.from(data['images'].map((image) => image['url'])),
-      tags: List<Tag>.from(data['tags'].map((tag) => Tag.fromJson(tag))),
-      discount: data['discount'],
-    );
-  }
 
   // From Map
   factory ProductModel.fromMap(Map<String, dynamic> map) {
