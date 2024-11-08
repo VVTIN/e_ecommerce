@@ -19,6 +19,8 @@ class ProductController extends GetxController {
     getProduct();
   }
 
+
+
   void getProduct() async {
     try {
       isProductLoading(true);

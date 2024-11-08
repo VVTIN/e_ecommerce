@@ -6,7 +6,7 @@ import 'package:ecommerce/pages/categoryPage.dart';
 import 'package:ecommerce/pages/order/orderHistoryPage.dart';
 import 'package:ecommerce/pages/homePage.dart';
 import 'package:ecommerce/pages/accountPage.dart';
-import 'package:ecommerce/pages/productPage.dart';
+import 'package:ecommerce/pages/product/productPage.dart';
 import 'package:ecommerce/widget/appbar/drawer.dart';
 import 'package:ecommerce/widget/appbar/home_appbar.dart';
 import 'package:flutter/material.dart';
@@ -24,61 +24,46 @@ class _MainPageState extends State<MainPage> {
     Scaffold.of(context).openDrawer();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
+    // Retrieve the DashboardController instance
+    final DashboardController controller = Get.find<DashboardController>();
+
     return GetBuilder<DashboardController>(
-      builder: (controller) => Scaffold(
+      init: controller, // Ensure it's initialized
+      builder: (_) => Scaffold(
         backgroundColor: Colors.grey.shade100,
         drawer: DrawerWidget(),
-        //appbar
         appBar: controller.tabIndex == 0 || controller.tabIndex == 1
             ? HomeAppBar(
                 openDrawer: openDrawer,
                 onSearchSubmitted: (value) {
                   ProductController.instance.getProductByName(keyword: value);
                   setState(() {
-                    controller.tabIndex = 1;
+                    controller.updateIndex(1);
                   });
                 },
               )
             : null,
         body: IndexedStack(
           index: controller.tabIndex,
-          children:  [
+          children: [
             HomePage(),
             ProductPage(),
-            OrderHistoryPage(userId: CurrentUser().id!),
+            OrderHistoryPage(userId: CurrentUser().id ?? 0), // Add default user ID
             AccountPage(),
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(
           items: const [
-            Icon( 
-              Icons.home,
-              size: 33,
-              color: Colors.white,
-            ),
-            Icon(
-              Icons.category,
-              size: 33,
-              color: Colors.white,
-            ),
-            Icon(
-              Icons.history,
-              size: 33,
-              color: Colors.white,
-            ),
-            Icon(
-              Icons.person,
-              size: 33,
-              color: Colors.white,
-            ),
+            Icon(Icons.home, size: 33, color: Colors.white),
+            Icon(Icons.category, size: 33, color: Colors.white),
+            Icon(Icons.history, size: 33, color: Colors.white),
+            Icon(Icons.person, size: 33, color: Colors.white),
           ],
           onTap: (index) {
             setState(() {
-              controller.tabIndex = index;
+              controller.updateIndex(index);
             });
           },
           backgroundColor: Colors.transparent,
@@ -89,3 +74,4 @@ class _MainPageState extends State<MainPage> {
     );
   }
 }
+

@@ -1,11 +1,13 @@
-import 'package:ecommerce/model/currentUser.dart'; // Import CurrentUser model
-import 'package:ecommerce/model/product.dart'; // Import Product model
+import 'package:ecommerce/model/currentUser.dart'; 
+import 'package:ecommerce/model/product.dart'; 
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../controller/controller.dart';
 import '../model/cart.dart';
+import '../model/order.dart';
+
 
 class DatabaseHelper {
   static final DatabaseHelper dataService = DatabaseHelper._internal();
@@ -20,25 +22,52 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    return openDatabase(join(await getDatabasesPath(), "fashion.db"),
+    return openDatabase(join(await getDatabasesPath(), "project4.db"),
         onCreate: (db, version) {
       db.execute(
-          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT)');
+          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT, role TEXT DEFAULT "user")');
       db.execute(
           'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
       db.execute(
           'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER, userId INTEGER, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
       db.execute(
-          'CREATE TABLE orders (id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, date TEXT, total REAL, status TEXT, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
-      db.execute(
-          'CREATE TABLE order_status (orderId INTEGER, status TEXT, timestamp TEXT, FOREIGN KEY(orderId) REFERENCES orders(id) ON DELETE CASCADE)');
+        'CREATE TABLE orders ('
+        'orderId INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'userId INTEGER , '
+        'amount REAL, '
+        'address TEXT, '
+        'status TEXT DEFAULT "Processing", '
+        'date TEXT)',
+      );
+      db.execute('''
+  CREATE TABLE OrderItems (
+    id INTEGER PRIMARY KEY,
+    orderId INTEGER,
+    productName TEXT,
+    quantity INTEGER,
+    price REAL,
+    FOREIGN KEY(orderId) REFERENCES Orders(id)
+  )
+''');
+      // Tạo tài khoản admin
+      db.insert(
+        'users',
+        {
+          'username': 'admin',
+          'email': 'admin@gmail.com',
+          'emailAddress': 'admin@gmail.com',
+          'password': 'admin',
+          'role': 'admin',
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     }, version: 1);
   }
 
   // 1
   //sign up
   Future<void> createUser(String username, String email, String password,
-      {String? avatarUrl}) async {
+      {String? avatarUrl, String role = 'user'}) async {
     final db = await database;
     await db.insert(
       'users',
@@ -47,9 +76,10 @@ class DatabaseHelper {
         'email': email,
         'emailAddress': email,
         'password': password,
-        'avatarUrl': avatarUrl
+        'avatarUrl': avatarUrl,
+        'role': role, // Assign the role during user creation
       },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 
@@ -67,21 +97,29 @@ class DatabaseHelper {
   }
 
   //2
-    Future<int> addCart(Cart cart, int userId) async {
+  // Cart Functions
+  Future<int> addCart(Cart cart, int userId) async {
     final db = await database;
-    return await db.insert('cart', {
+    print(
+        'Adding to cart: ${cart.product.id}, quantity: ${cart.quantity.value}, userId: $userId');
+    final result = await db.insert('cart', {
       'productId': cart.product.id,
       'quantity': cart.quantity.value,
       'price': cart.price,
       'userId': userId,
       'count': cart.count,
     });
+    print(
+        'Inserted cart item with productId: ${cart.product.id}, userId: $userId');
+    return result;
   }
 
   Future<List<Cart>> getCart(int userId) async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('cart',
-        where: 'userId = ?', whereArgs: [userId]);
+    final List<Map<String, dynamic>> maps =
+        await db.query('cart', where: 'userId = ?', whereArgs: [userId]);
+
+    print('Retrieved ${maps.length} cart items for userId: $userId');
 
     return List.generate(maps.length, (i) {
       return Cart.fromMap(maps[i]);
@@ -90,11 +128,15 @@ class DatabaseHelper {
 
   Future<int> updateCart(Cart cart, int userId) async {
     final db = await database;
-    return await db.update('cart', {
-      'quantity': cart.quantity.value,
-      'price': cart.price,
-      'count': cart.count,
-    }, where: 'productId = ? AND userId = ?', whereArgs: [cart.product.id, userId]);
+    return await db.update(
+        'cart',
+        {
+          'quantity': cart.quantity.value,
+          'price': cart.price,
+          'count': cart.count,
+        },
+        where: 'productId = ? AND userId = ?',
+        whereArgs: [cart.product.id, userId]);
   }
 
   Future<int> deleteCart(int productId, int userId) async {
@@ -306,167 +348,94 @@ class DatabaseHelper {
   }
 
   // 7. Quản lý Lịch Sử Đơn Hàng
-  // Future<void> addOrderHistory(
-  //     int userId, String orderDate, String status) async {
-  //   final db = await database;
-  //   await db.insert(
-  //     'OrderHistory',
-  //     {
-  //       'userId': userId,
-  //       'orderDate': orderDate,
-  //       'status': status,
-  //     },
-  //     conflictAlgorithm: ConflictAlgorithm.replace,
-  //   );
-  // }
 
-  // // Lấy lịch sử đơn hàng của người dùng
-  // Future<List<Map<String, dynamic>>> getOrderHistory(int userId) async {
-  //   final db = await database;
-  //   return await db.query(
-  //     'OrderHistory',
-  //     where: 'userId = ?',
-  //     whereArgs: [userId],
-  //     orderBy: 'orderDate DESC',
-  //   );
-  // }
-
-  // // Cập nhật trạng thái đơn hàng
-  // Future<void> updateOrderStatus(int orderId, String status) async {
-  //   final db = await database;
-  //   await db.update(
-  //     'OrderHistory',
-  //     {'status': status},
-  //     where: 'id = ?',
-  //     whereArgs: [orderId],
-  //   );
-  // }
-
-  // 8. Quản lý Tùy Chọn Thông Báo
-  Future<void> setNotificationSettings(int userId,
-      {bool? orderNotification, bool? promotionNotification}) async {
+  Future<void> updateOrderStatus(int orderId, String newStatus) async {
     final db = await database;
+    await db.update(
+      'orders',
+      {'status': newStatus},
+      where: 'orderId = ?',
+      whereArgs: [orderId],
+    );
+  }
+
+  Future<void> insertOrder(OrderModel order) async {
+    final db = await _initDatabase();
     await db.insert(
-      'NotificationSettings',
-      {
-        'userId': userId,
-        'orderNotification': orderNotification == true ? 1 : 0,
-        'promotionNotification': promotionNotification == true ? 1 : 0,
-      },
+      'orders',
+      order.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Lấy trạng thái thông báo của người dùng
-  Future<Map<String, dynamic>?> getNotificationSettings(int userId) async {
+  // Giả sử bạn có phương thức getOrders() như sau:
+  Future<List<OrderModel>> getOrders() async {
     final db = await database;
-    List<Map<String, dynamic>> result = await db.query(
-      'NotificationSettings',
-      where: 'userId = ?',
-      whereArgs: [userId],
-      limit: 1,
-    );
-    return result.isNotEmpty ? result.first : null;
+    var res = await db.query("orders");
+
+    List<OrderModel> list =
+        res.map((item) => OrderModel.fromMap(item)).toList();
+    return list;
   }
 
-  // Cập nhật tùy chọn thông báo
-  Future<void> updateNotificationSettings(int userId,
-      {bool? orderNotification, bool? promotionNotification}) async {
+  Future<List<OrderModel>> getOrdersByUserId(int userId) async {
     final db = await database;
-    Map<String, dynamic> updateData = {};
-    if (orderNotification != null) {
-      updateData['orderNotification'] = orderNotification ? 1 : 0;
-    }
-    if (promotionNotification != null) {
-      updateData['promotionNotification'] = promotionNotification ? 1 : 0;
-    }
-    await db.update(
-      'NotificationSettings',
-      updateData,
-      where: 'userId = ?',
+    var res = await db.query(
+      "orders",
+      where: "userId = ?",
       whereArgs: [userId],
     );
+    List<OrderModel> orderList =
+        res.map((item) => OrderModel.fromMap(item)).toList();
+    print(
+        "Total orders for userId $userId: ${orderList.length}");
+    return orderList;
+  }
+   Future<List<OrderModel>> getOrdersByUser() async {
+    final db = await database;
+    var res = await db.query(
+      "orders",      
+    );
+    List<OrderModel> orderList =
+        res.map((item) => OrderModel.fromMap(item)).toList();
+    return orderList;
   }
 
-//9 order
-  Future<void> createOrder(int userId, double total) async {
+  // Future<void> updateOrder(OrderModel order) async {
+  //   final db = await _initDatabase();
+  //   await db.update(
+  //     'orders',
+  //     order.toMap(),
+  //     where: 'orderId = ?',
+  //     whereArgs: [order.orderId],
+  //   );
+  // }
+
+  // Future<void> deleteOrder(int orderId) async {
+  //   final db = await _initDatabase();
+  //   await db.delete(
+  //     'orders',
+  //     where: 'orderId = ?',
+  //     whereArgs: [orderId],
+  //   );
+  // }
+
+  // Future<List<OrderItem>> getOrderItemsByOrderId(int orderId) async {
+  //   final db = await database;
+  //   final result = await db.query(
+  //     'OrderItems',
+  //     where: 'orderId = ?',
+  //     whereArgs: [orderId],
+  //   );
+
+  //   return result.map((e) => OrderItem.fromMap(e)).toList();
+  // }
+  Future<void> insertOrderItem(OrderItem orderItem) async {
     final db = await database;
     await db.insert(
-      'orders',
-      {
-        'userId': userId,
-        'date': DateTime.now().toIso8601String(),
-        'total': total,
-        'status': 'Đang xử lý',
-      },
-    );
-  }
-
-  Future<void> updateOrderStatus(int orderId, String status) async {
-    final db = await database;
-    await db.update(
-      'orders',
-      {'status': status},
-      where: 'id = ?',
-      whereArgs: [orderId],
-    );
-    await db.insert(
-      'order_status',
-      {
-        'orderId': orderId,
-        'status': status,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> getUserOrderHistory(int userId) async {
-    final db = await database;
-    return await db.query(
-      'orders',
-      where: 'userId = ?',
-      whereArgs: [userId],
-    );
-  }
-  Future<List<Map<String, dynamic>>> getOrderStatusTimeline(int orderId) async {
-    final db = await database;
-    return await db.query(
-      'order_status',
-      where: 'orderId = ?',
-      whereArgs: [orderId],
-      orderBy: 'timestamp ASC',
-    );
-}
- // Thêm đơn hàng vào bảng 'orders'
-  Future<int> insertOrder({required int userId, required double totalAmount, required String status}) async {
-    final db = await database;
-    return await db.insert('orders', {
-      'userId': userId,
-      'totalAmount': totalAmount,
-      'status': status,
-      'orderDate': DateTime.now().toIso8601String(),
-    });
-  }
-
-  // Thêm sản phẩm của đơn hàng vào bảng 'order_items'
-  Future<void> insertOrderItem({required int orderId, required int productId, required int quantity, required double price}) async {
-    final db = await database;
-    await db.insert('order_items', {
-      'orderId': orderId,
-      'productId': productId,
-      'quantity': quantity,
-      'price': price,
-    });
-  }
-
-  // Lấy danh sách đơn hàng của người dùng
-  Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
-    final db = await database;
-    return await db.query(
-      'orders',
-      where: 'userId = ?',
-      whereArgs: [userId],
-      orderBy: 'orderDate DESC',
+      'OrderItems',
+      orderItem.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 }

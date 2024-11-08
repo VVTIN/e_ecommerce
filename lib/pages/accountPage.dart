@@ -1,4 +1,5 @@
 import 'package:ecommerce/data/DB_helper.dart';
+import 'package:ecommerce/page_admin/adminPage.dart';
 import 'package:ecommerce/pages/auth/authencation.dart';
 import 'package:ecommerce/service/remote_service/auth_service.dart';
 import 'package:ecommerce/widget/notification/notification_api.dart';
@@ -39,40 +40,6 @@ class _AccountPageState extends State<AccountPage> {
         .getUserById(userId)
         .then((result) => result.isNotEmpty ? result.first : null);
   }
-
-//Notification
-  bool _notificationsEnabled = true;
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _loadNotificationSetting();
-  // }
-
-  // // Tải cài đặt thông báo từ SharedPreferences
-  // Future<void> _loadNotificationSetting() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   setState(() {
-  //     _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
-  //   });
-  // }
-
-  // // Lưu cài đặt thông báo vào SharedPreferences
-  // Future<void> _saveNotificationSetting(bool value) async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setBool('notificationsEnabled', value);
-  // }
-
-  // // Hàm kiểm tra và hiển thị thông báo
-  // void showNotification(String message) {
-  //   if (_notificationsEnabled) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text(message)),
-  //     );
-  //   } else {
-  //     print("Thông báo bị tắt.");
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +181,12 @@ class _AccountPageState extends State<AccountPage> {
                             );
                           }
                         },
-                      )
+                      ),
+                    CurrentUser().role=='admin'?  CardWidget(
+                        text: 'Quản trị viên',
+                        onClick: () => Get.to(() => const AdminPage()),
+                      ):
+                       Container()
                     ],
                   ),
                 ),

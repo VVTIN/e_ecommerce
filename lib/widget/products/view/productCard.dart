@@ -2,7 +2,7 @@ import 'package:ecommerce/config/const.dart';
 import 'package:ecommerce/model/product.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../pages/productDetailPage.dart';
+import '../../../pages/product/productDetailPage.dart';
 
 class Productcard extends StatelessWidget {
   const Productcard({super.key, required this.product});

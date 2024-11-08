@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../MainPage.dart';
-import '../../pages/productPage.dart';
+import '../../pages/product/productPage.dart';
 
 class CategoryCard extends StatefulWidget {
   const CategoryCard({super.key, required this.category});

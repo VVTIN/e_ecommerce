@@ -1,5 +1,5 @@
 import 'package:ecommerce/controller/controller.dart';
-import 'package:ecommerce/pages/productPage.dart';
+import 'package:ecommerce/pages/product/productPage.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

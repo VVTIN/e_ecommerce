@@ -7,20 +7,14 @@ import 'package:ecommerce/controller/home_controller.dart';
 import 'package:ecommerce/controller/product_controller.dart';
 import 'package:ecommerce/model/banner.dart';
 import 'package:ecommerce/pages/auth/authencation.dart';
-import 'package:ecommerce/pages/homePage.dart';
 import 'package:ecommerce/theme/appTheme.dart';
-import 'package:ecommerce/widget/cart/payment/keys.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ecommerce/widget/payment/keys.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'MainPage.dart';
 import 'data/DB_helper.dart';
-import 'service/remote_service/stripe_servive.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +24,7 @@ void main() async {
 
   await Hive.initFlutter();
 
+  await DatabaseHelper().database;
 //register adapter
   Hive.registerAdapter(BannerModelAdapter());
 

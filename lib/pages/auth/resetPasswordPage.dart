@@ -68,6 +68,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+             Image(
+                image: AssetImage('assets/images/Forgot password-bro.png'),
+                fit: BoxFit.cover,
+                ),
+            SizedBox(height: 20),
             Text(
               'Nhập email của bạn',
               style: TextStyle(fontSize: 24),
@@ -96,6 +101,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ],
         ),
       ),
-    );
+    );  
   }
 }

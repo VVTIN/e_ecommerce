@@ -1,9 +1,12 @@
 import 'package:ecommerce/MainPage.dart';
+import 'package:ecommerce/controller/controller.dart';
 import 'package:ecommerce/data/DB_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../model/currentUser.dart';
+import '../../page_admin/adminPage.dart';
+import '../../page_admin/role_option.dart';
 import '../../pages/auth/resetPasswordPage.dart';
 import '../setting/profile_user.dart';
 import 'buttonSign.dart';
@@ -24,20 +27,31 @@ class _SigninFormState extends State<SigninForm> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   void _login() async {
-    var user = await _dbHelper.getUser(_emailCtrl.text);
-    if (user.isNotEmpty && user[0]['password'] == _passwordCtrl.text) {
-      CurrentUser()
-          .setUser(user[0]['id'], user[0]['username'], user[0]['email']);
+  var user = await _dbHelper.getUser(_emailCtrl.text);
+  if (user.isNotEmpty && user[0]['password'] == _passwordCtrl.text) {
+    // Get the user role
+    String role = user[0]['role'];
 
+    // Save the user information including the role
+    CurrentUser().setUser(user[0]['id'], user[0]['username'], user[0]['email'], role);
+
+    if (role == 'admin') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainPage()),
+        MaterialPageRoute(builder: (context) => RoleOption()), // Admin page
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Email hoặc mật khẩu không đúng!")));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()), // User main page
+      );
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Email hoặc mật khẩu không đúng!")));
   }
+}
+
 
   @override
   void dispose() {

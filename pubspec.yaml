@@ -27,7 +27,8 @@ dependencies:
   flutter_easyloading: ^3.0.5
   shared_preferences: ^2.3.2
   image_picker: ^1.1.2
- 
+  
+
   #local db
   hive: ^2.2.3
   hive_flutter: ^1.1.0

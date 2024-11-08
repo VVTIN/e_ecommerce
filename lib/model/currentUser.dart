@@ -1,23 +1,25 @@
 class CurrentUser {
-  static CurrentUser instance = CurrentUser._internal();
-  factory CurrentUser() => instance;
-  CurrentUser._internal();
+  static final CurrentUser _instance = CurrentUser._internal();
+  factory CurrentUser() => _instance;
 
   int? id;
   String? username;
   String? email;
+  String? role;
 
- void setUser(int userId, String userName, String userEmail) {
-  id = userId;
-  username = userName;
-  email = userEmail;
-  print("CurrentUser set with id: $id, username: $username, email: $email");
-}
+  CurrentUser._internal();
 
-void clearUser() {
-  print("Clearing CurrentUser: id was $id, username was $username, email was $email");
-  id = null;
-  username = null;
-  email = null;
-}
+  void setUser(int id, String username, String email, String role) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+    this.role = role;
+  }
+
+  void clearUser() {
+    id = null;
+    username = null;
+    email = null;
+    role = null;
+  }
 }
