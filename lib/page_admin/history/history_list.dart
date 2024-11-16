@@ -102,7 +102,7 @@ class _HistoryListState extends State<HistoryList> {
                                 setState(() {});
 
                                 await DatabaseHelper().updateOrderStatus(
-                                    order.orderId, newStatus);
+                                    order.orderId!, newStatus);
                               }
                             },
                           ),

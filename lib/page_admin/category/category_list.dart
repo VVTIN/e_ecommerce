@@ -1,11 +1,15 @@
 import 'package:ecommerce/controller/controller.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ecommerce/model/category.dart';
+import 'package:ecommerce/page_admin/category/category_edit.dart';
+import 'package:ecommerce/service/remote_service/category_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+
 
 import '../../config/const.dart';
+import 'category_add.dart';
 
 class CategoryList extends StatefulWidget {
   const CategoryList({super.key});
@@ -15,11 +19,14 @@ class CategoryList extends StatefulWidget {
 }
 
 class _CategoryListState extends State<CategoryList> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _imagesController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Danh sách danh mục',
           style: TextStyle(
               fontSize: 24, color: Colors.white, fontWeight: FontWeight.w500),
@@ -29,38 +36,57 @@ class _CategoryListState extends State<CategoryList> {
       ),
       body: Obx(() {
         if (categoryController.isCategoryLoading.value) {
-          return  Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         } else {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: ListView.builder(
               itemCount: categoryController.categoryList.length,
               itemBuilder: (context, index) {
-                final category = categoryController.categoryList[index];            
+                final category = categoryController.categoryList[index];
                 return Slidable(
                   endActionPane: ActionPane(
-                    motion: BehindMotion(),
+                    motion: const BehindMotion(),
                     children: [
                       SlidableAction(
                         onPressed: (context) => showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Xác nhận yêu cầu'),
-                              content: Text('Bạn có chắc muốn xoá không?'),
+                              title: const Text('Xác nhận yêu cầu'),
+                              content:
+                                  const Text('Bạn có chắc muốn xoá không?'),
                               actions: [
                                 TextButton(
                                   onPressed: () {
                                     Navigator.pop(context);
                                   },
-                                  child: Text(
+                                  child: const Text(
                                     'Hủy',
                                     style: TextStyle(color: Colors.black),
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () {
-                                    // onDelete(task.id!);
+                                  onPressed: () async {
+                                    var response = await CategoryService()
+                                        .delete('${category.id}');
+                                    if (response.statusCode == 200) {
+                                      categoryController.categoryList
+                                          .removeWhere(
+                                              (cat) => cat.id == category.id);
+                                      categoryController.update();
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Xóa thành công!')),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Xóa thất bại!')),
+                                      );
+                                    }
                                     Navigator.pop(context);
                                   },
                                   child: Container(
@@ -71,7 +97,7 @@ class _CategoryListState extends State<CategoryList> {
                                       borderRadius: BorderRadius.circular(25),
                                       color: Colors.red,
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       'Xóa',
                                       style: TextStyle(color: Colors.white),
                                     ),
@@ -86,53 +112,58 @@ class _CategoryListState extends State<CategoryList> {
                       ),
                     ],
                   ),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(width: 1, color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            baseUrl + category.image,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
+                  child: GestureDetector(
+                    onTap: () {
+                      Get.to(() => (showCategoryDetailDialog(context,
+                          _nameController.text, _imagesController as int)));
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border:
+                            Border.all(width: 1, color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                category.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              baseUrl + category.image,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              const SizedBox(height: 6),
-                             
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -141,9 +172,18 @@ class _CategoryListState extends State<CategoryList> {
           );
         }
       }),
-       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: Icon(Icons.add),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await showAddCategoryDialog(
+            context,
+            _nameController,
+            _imagesController,
+            (name, image) {
+              categoryController.postCategories(name, image);
+            },
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:ecommerce/model/tag.dart';
 
 class ProductModel {
-  final int id;
+  final int? id;
   final String name;
   final String description;
   final List<String> images;
-  final List<Tag> tags; // Assuming Tag is another model class
+  final List<Tag> tags; 
   final int? discount;
 
   ProductModel({
-    required this.id,
+     this.id,
     required this.name,
     required this.description,
     required this.images,
@@ -66,11 +66,11 @@ class ProductModel {
   // To Map
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+    
       'name': name,
       'description': description,
-      'images': images, // Assuming images are stored as a List<String> in the database
-      'tags': tags.map((tag) => tag.toJson()).toList(), // Ensure Tag has a toJson() method
+      'images': images, 
+      'tags': tags.map((tag) => tag.toJson()).toList(), 
       'discount': discount,
     };
   }

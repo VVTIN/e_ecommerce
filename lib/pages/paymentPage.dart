@@ -37,17 +37,13 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _getDefaultAddress() async {
     _defaultAddress =
         await DatabaseHelper.dataService.getDefaultAddress(widget.userId);
-    if (_defaultAddress == null ||
-        _defaultAddress!['address'] == null ||
-        _defaultAddress!['address'].isEmpty) {
+    if (_defaultAddress == null || _defaultAddress!['address']?.isEmpty ??
+        true) {
       setState(() {
         _useDefaultAddress = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Không có địa chỉ mặc định. Vui lòng nhập địa chỉ giao hàng.')),
-      );
+      _showSnackBar(
+          'Không có địa chỉ mặc định. Vui lòng nhập địa chỉ giao hàng.');
     } else {
       setState(() {});
     }
@@ -65,27 +61,43 @@ class _PaymentPageState extends State<PaymentPage> {
         intentPaymentData = null;
         cartController.clearCart();
 
-        // Tạo đơn hàng
         String address = _useDefaultAddress
             ? (_defaultAddress?['address'] ?? '')
             : _addressController.text;
-            
+
+        List<CartItem> cartItems =
+            await cartController.getCartItems(widget.userId);
+
+        List<OrderItem> orderItems = cartItems.map((item) {
+          return OrderItem(
+            productId: item.productId,
+            orderId: 0,
+            quantity: item.quantity,
+            price: item.price,
+            discount: item.discount,
+            id: -1,
+          );
+        }).toList();
+
         OrderModel newOrder = OrderModel(
           userId: widget.userId,
           amount: getAmount(),
           address: address,
-          orderId: 0,
           status: OrderStatus.processing,
           date: DateTime.now(),
+          orderItems: orderItems,
         );
 
-        // Lưu đơn hàng vào cơ sở dữ liệu
-        await DatabaseHelper.dataService.insertOrder(newOrder);
+        // Save the order into the database
+        int newOrderId = await DatabaseHelper.dataService.insertOrder(newOrder);
+        newOrder = newOrder.copyWith(orderId: newOrderId);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Thanh toán thành công! Đơn hàng đã được tạo.')),
-        );
+        for (var item in orderItems) {
+          await DatabaseHelper.dataService
+              .insertOrderItem(item.copyWith(orderId: newOrderId));
+        }
+
+        _showSnackBar('Thanh toán thành công! Đơn hàng đã được tạo.');
 
         Future.delayed(const Duration(seconds: 1), () {
           Navigator.of(context).pushAndRemoveUntil(
@@ -102,18 +114,13 @@ class _PaymentPageState extends State<PaymentPage> {
       if (kDebugMode) {
         print(error);
       }
-      showDialog(
-        context: context,
-        builder: (context) => const AlertDialog(content: Text('Đã hủy bỏ')),
-      );
+      _showDialog('Đã hủy bỏ');
     } catch (errorMsg) {
       if (kDebugMode) {
         print(errorMsg);
       }
     }
   }
-
- 
 
   Future<void> paymentSheetInitialization(
       int amountToBeCharged, String currency) async {
@@ -132,10 +139,7 @@ class _PaymentPageState extends State<PaymentPage> {
         );
         await showPaymentSheet();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Không thể tạo thanh toán. Vui lòng thử lại.')),
-        );
+        _showSnackBar('Không thể tạo thanh toán. Vui lòng thử lại.');
       }
     } catch (errorMsg, s) {
       if (kDebugMode) {
@@ -147,79 +151,68 @@ class _PaymentPageState extends State<PaymentPage> {
   void _payWithStripe() async {
     try {
       double amount = getAmount();
-      int amountInCents = (amount).toInt();
-
+      int amountInCents = (amount).toInt(); // Stripe requires cents
       await paymentSheetInitialization(amountInCents, "vnd");
     } catch (e) {
       print("Stripe payment error: ${e.toString()}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                'Thanh toán qua Stripe thất bại! \n Chi tiết: ${e.toString()}')),
-      );
+      _showSnackBar(
+          'Thanh toán qua Stripe thất bại! Chi tiết: ${e.toString()}');
     }
   }
 
- void _payWithPayPal() async {
-  String address = _useDefaultAddress
-      ? (_defaultAddress?['address'] ?? '')
-      : _addressController.text;
-  if (address.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Vui lòng nhập địa chỉ giao hàng.')),
+  void _payWithPayPal() async {
+    String address = _useDefaultAddress
+        ? (_defaultAddress?['address'] ?? '')
+        : _addressController.text;
+    if (address.isEmpty) {
+      _showSnackBar('Vui lòng nhập địa chỉ giao hàng.');
+      return;
+    }
+
+    // Create the order model with empty orderItems initially
+    OrderModel newOrder = OrderModel(
+      userId: widget.userId,
+      amount: getAmount(),
+      address: address,
+      status: OrderStatus.processing,
+      date: DateTime.now(),
+      orderItems: [],
     );
-    return;
+
+    // Insert the order and get the orderId
+    int newOrderId = await DatabaseHelper.dataService.insertOrder(newOrder);
+    newOrder = newOrder.copyWith(orderId: newOrderId);
+
+    List<CartItem> cartItems = await cartController.getCartItems(widget.userId);
+
+    for (var item in cartItems) {
+      OrderItem orderItem = OrderItem(
+        productId: item.productId,
+        orderId: newOrderId,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount, id: -1,
+      );
+      await DatabaseHelper.dataService.insertOrderItem(orderItem);
+    }
+
+    cartController.clearCart();
+    _showSnackBar('Đặt hàng thành công! Hóa đơn đã được tạo.');
+
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => MainPage()),
+        (Route<dynamic> route) => false,
+      );
+    });
   }
-
-  // Tạo đơn hàng cho thanh toán bằng tiền mặt
-  OrderModel newOrder = OrderModel(
-    orderId: 0,
-    userId: widget.userId,
-    amount: getAmount(),
-    address: address,
-    status: OrderStatus.processing,
-    date: DateTime.now(), 
-  );
-
-  // Lưu đơn hàng vào cơ sở dữ liệu
-  await DatabaseHelper.dataService.insertOrder(newOrder);
-
-  // Lấy danh sách sản phẩm trong giỏ hàng
-  List<CartItem> cartItems = await cartController.getCartItems(widget.userId);
-
-  // Lưu chi tiết sản phẩm vào bảng OrderItems
-  for (var item in cartItems) {
-    OrderItem orderItem = OrderItem(
-      orderId: newOrder.orderId!,  // ID đơn hàng vừa tạo
-      productName: item.productName,
-      quantity: item.quantity,
-      price: item.price, id: item.productId,
-    );
-    await DatabaseHelper.dataService.insertOrderItem(orderItem);
-  }
-
-  cartController.clearCart();
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Đặt hàng thành công! Hóa đơn đã được tạo.')),
-  );
-
-  Future.delayed(const Duration(seconds: 1), () {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => MainPage()),
-      (Route<dynamic> route) => false,
-    );
-  });
-}
-
 
   void _submitPayment() {
     String address = _useDefaultAddress
         ? (_defaultAddress?['address'] ?? '')
         : _addressController.text;
     if (address.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập địa chỉ giao hàng.')),
-      );
+      _showSnackBar('Vui lòng nhập địa chỉ giao hàng.');
       return;
     }
 
@@ -228,6 +221,18 @@ class _PaymentPageState extends State<PaymentPage> {
     } else {
       _payWithStripe();
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(content: Text(message)),
+    );
   }
 
   @override

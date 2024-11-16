@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 class Category {
-  int id;
+  int? id;
   String name;
   String image;
 
   Category({
-    required this.id,
+    this.id,
     required this.name,
     required this.image,
   });

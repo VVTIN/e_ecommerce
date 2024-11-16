@@ -1,4 +1,5 @@
 import 'package:ecommerce/controller/controller.dart';
+import 'package:ecommerce/page_admin/product/product_add.dart';
 import 'package:ecommerce/widget/products/loading/productLoadingGrid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../config/const.dart';
 import '../../model/product.dart';
+import '../../model/tag.dart';
 
 class ProductList extends StatefulWidget {
   const ProductList({super.key});
@@ -15,6 +17,11 @@ class ProductList extends StatefulWidget {
 }
 
 class _ProductListState extends State<ProductList> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _imagesController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,13 +44,16 @@ class _ProductListState extends State<ProductList> {
               itemCount: productController.listProduct.length,
               itemBuilder: (context, index) {
                 final product = productController.listProduct[index];
-
+ // Kiểm tra nếu tag là null và thay thế giá trị mặc định là 0
+                final productPrice = (product.tags.isNotEmpty && product.tags[0] != null)
+                    ? product.tags[0].price
+                    : 0;
                 // Format the price
                 final formattedPrice = NumberFormat.currency(
                   locale: 'vi_VN',
                   symbol: '',
                   decimalDigits: 0,
-                ).format(product.tags[0].price);
+                ).format(productPrice);
 
                 return Slidable(
                   endActionPane: ActionPane(
@@ -68,7 +78,8 @@ class _ProductListState extends State<ProductList> {
                                 ),
                                 TextButton(
                                   onPressed: () {
-                                    // onDelete(task.id!);
+                                    productController
+                                        .deleteProduct(product.id!);
                                     Navigator.pop(context);
                                   },
                                   child: Container(
@@ -156,8 +167,56 @@ class _ProductListState extends State<ProductList> {
         }
       }),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: Icon(Icons.add),
+        onPressed: () async {
+          await addProductDialog(
+            context,
+            _nameController,
+            _imagesController,
+            _descriptionController,
+            _discountController,
+            (String name, String image, String description, int discount) {
+              // Validate dữ liệu đầu vào
+              if (name.isEmpty) {
+                Get.snackbar('', "Tên sản phẩm không được để trống!");
+                return;
+              }
+              if (image.isEmpty) {
+                Get.snackbar('', "URL ảnh không hợp lệ!");
+                return;
+              }
+              if (description.isEmpty) {
+                Get.snackbar('', "Mô tả không được để trống!");
+                return;
+              }
+              if (discount < 0 || discount > 100) {
+                Get.snackbar('', "Giảm giá phải nằm trong khoảng 0-100%!");
+                return;
+              }
+            
+              // Tạo sản phẩm mới
+              final newProduct = ProductModel(
+                name: name,
+                images: [image],
+                description: description,
+                discount: discount,
+                tags: [],
+              );
+
+              // Gọi hàm thêm sản phẩm từ controller
+              productController.createProduct(newProduct);
+
+              // Hiển thị thông báo thành công
+              Get.snackbar('', "Thêm sản phẩm thành công!");
+
+              // Xóa dữ liệu trong các TextField
+              _nameController.clear();
+              _imagesController.clear();
+              _descriptionController.clear();
+              _discountController.clear();
+            },
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

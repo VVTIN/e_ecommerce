@@ -36,7 +36,7 @@ class _ListPopularProductState extends State<ListPopularProduct> {
               onTap: () {
                 Get.to(
                   () => ProductDetailPage(
-                    product: productController.listProduct[product.id],
+                    product: productController.listProduct[product.id!],
                   ),
                 );
               },

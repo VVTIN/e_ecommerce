@@ -3,6 +3,7 @@ import 'package:ecommerce/model/category.dart';
 import 'package:ecommerce/model/product.dart';
 import 'package:ecommerce/service/local_service/local_banner_service.dart';
 import 'package:ecommerce/service/remote_service/banner_service.dart';
+import 'package:ecommerce/service/remote_service/category_service.dart';
 import 'package:ecommerce/service/remote_service/popularCategory_service.dart';
 import 'package:ecommerce/service/remote_service/popularProduct_service.dart';
 import 'package:ecommerce/service/remote_service/promotionProduct_service.dart';
@@ -10,14 +11,17 @@ import 'package:get/get.dart';
 
 class HomeController extends GetxController {
   static HomeController instance = Get.find();
+  //banner
   RxList<BannerModel> bannerList = List<BannerModel>.empty(growable: true).obs;
   RxBool isBannerLoading = false.obs;
   final LocalBannerService localBannerService = LocalBannerService();
 
+//categoty
   RxList<Category> popularCategoryList =
       List<Category>.empty(growable: true).obs;
   RxBool isPopularCategoryLoading = false.obs;
 
+//product
   RxList<ProductModel> popularProductList =
       List<ProductModel>.empty(growable: true).obs;
   RxBool isPopularProductLoading = false.obs;
@@ -36,19 +40,16 @@ class HomeController extends GetxController {
     super.onInit();
   }
 
+//banner
   void getBanners() async {
     try {
       isBannerLoading(true);
-      //local banner before api call
       if (localBannerService.getBanners().isNotEmpty) {
         bannerList.assignAll(localBannerService.getBanners());
       }
-      //call api
       var result = await BannerService().get();
       if (result != null) {
-        //assign api result
         bannerList.assignAll(bannerListFromJson(result.body));
-        //save api to local db
         localBannerService.assignAllBanners(
           banners: bannerListFromJson(result.body),
         );
@@ -58,6 +59,7 @@ class HomeController extends GetxController {
     }
   }
 
+//category
   void getPopularCategories() async {
     try {
       isPopularCategoryLoading(true);
@@ -68,6 +70,9 @@ class HomeController extends GetxController {
     }
   }
 
+
+
+//product
   void getPopularProducts() async {
     try {
       isPopularProductLoading(true);

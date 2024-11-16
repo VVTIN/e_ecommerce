@@ -1,5 +1,5 @@
-import 'package:ecommerce/model/currentUser.dart'; 
-import 'package:ecommerce/model/product.dart'; 
+import 'package:ecommerce/model/currentUser.dart';
+import 'package:ecommerce/model/product.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -7,7 +7,6 @@ import 'package:sqflite/sqflite.dart';
 import '../controller/controller.dart';
 import '../model/cart.dart';
 import '../model/order.dart';
-
 
 class DatabaseHelper {
   static final DatabaseHelper dataService = DatabaseHelper._internal();
@@ -22,34 +21,38 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    return openDatabase(join(await getDatabasesPath(), "project4.db"),
+    return openDatabase(join(await getDatabasesPath(), "project7.db"),
         onCreate: (db, version) {
+      // Tạo bảng users
       db.execute(
           'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, phone TEXT, avatarUrl TEXT, emailAddress TEXT, role TEXT DEFAULT "user")');
+
+      // Tạo bảng cart
       db.execute(
           'CREATE TABLE cart (productId INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL, userId INTEGER NOT NULL, count INTEGER DEFAULT 0, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+
+      // Tạo bảng Address
       db.execute(
           'CREATE TABLE Address(id INTEGER PRIMARY KEY, address TEXT, isDefault INTEGER, userId INTEGER, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+
+      // Tạo bảng orders (không chứa orderItems)
       db.execute(
-        'CREATE TABLE orders ('
-        'orderId INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'userId INTEGER , '
-        'amount REAL, '
-        'address TEXT, '
-        'status TEXT DEFAULT "Processing", '
-        'date TEXT)',
-      );
+          'CREATE TABLE orders (orderId INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, amount REAL, address TEXT, status TEXT DEFAULT "Processing", date TEXT, FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE)');
+
+      // Tạo bảng OrderItems (liên kết với bảng orders qua orderId)
       db.execute('''
-  CREATE TABLE OrderItems (
-    id INTEGER PRIMARY KEY,
-    orderId INTEGER,
-    productName TEXT,
-    quantity INTEGER,
-    price REAL,
-    FOREIGN KEY(orderId) REFERENCES Orders(id)
-  )
-''');
-      // Tạo tài khoản admin
+      CREATE TABLE OrderItems (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        orderId INTEGER,
+        productId INTEGER,
+        quantity INTEGER,
+        price REAL,
+        discount REAL,
+        FOREIGN KEY (orderId) REFERENCES orders (orderId) ON DELETE CASCADE
+      )
+    ''');
+
+      // Chèn tài khoản admin mặc định
       db.insert(
         'users',
         {
@@ -321,7 +324,6 @@ class DatabaseHelper {
   Future<void> deleteAddress(int id) async {
     final db = await database;
     await db.delete('Address', where: 'id = ?', whereArgs: [id]);
-
     final defaultAddress = await getDefaultAddress(CurrentUser().id!);
     if (defaultAddress == null) {
       List<Map<String, dynamic>> remainingAddresses = await getAddresses();
@@ -331,13 +333,11 @@ class DatabaseHelper {
     }
   }
 
-  // Fetch all addresses
   Future<List<Map<String, dynamic>>> getAddresses() async {
     final db = await database;
     return await db.query('Address');
   }
 
-  // Fetch all addresses for the current user
   Future<List<Map<String, dynamic>>> getUserAddresses(int userId) async {
     final db = await database;
     return await db.query(
@@ -359,16 +359,32 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> insertOrder(OrderModel order) async {
-    final db = await _initDatabase();
-    await db.insert(
+  Future<int> insertOrder(OrderModel newOrder) async {
+    final db = await database;
+    int orderId = await db.insert(
       'orders',
-      order.toMap(),
+      newOrder.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+
+    for (var item in newOrder.orderItems) {
+      await db.insert(
+        'OrderItems',
+        {
+          'orderId': orderId, 
+          'productId': item.productId,
+          'quantity': item.quantity, 
+          'price': item.price,
+          'discount': item.discount ?? 0.0, 
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    return orderId; 
   }
 
-  // Giả sử bạn có phương thức getOrders() như sau:
+ 
   Future<List<OrderModel>> getOrders() async {
     final db = await database;
     var res = await db.query("orders");
@@ -385,51 +401,31 @@ class DatabaseHelper {
       where: "userId = ?",
       whereArgs: [userId],
     );
+
     List<OrderModel> orderList =
         res.map((item) => OrderModel.fromMap(item)).toList();
-    print(
-        "Total orders for userId $userId: ${orderList.length}");
+    print("Total orders for userId $userId: ${orderList.length}");
     return orderList;
   }
-   Future<List<OrderModel>> getOrdersByUser() async {
+
+  Future<List<OrderModel>> getOrdersByUser() async {
     final db = await database;
-    var res = await db.query(
-      "orders",      
-    );
+    var res = await db.query("orders");
     List<OrderModel> orderList =
         res.map((item) => OrderModel.fromMap(item)).toList();
     return orderList;
   }
 
-  // Future<void> updateOrder(OrderModel order) async {
-  //   final db = await _initDatabase();
-  //   await db.update(
-  //     'orders',
-  //     order.toMap(),
-  //     where: 'orderId = ?',
-  //     whereArgs: [order.orderId],
-  //   );
-  // }
+  Future<List<OrderItem>> getOrderItemsByOrderId(int orderId) async {
+    final db = await database;
+    final result = await db.query(
+      'OrderItems',
+      where: 'orderId = ?',
+      whereArgs: [orderId],
+    );
+    return result.map((e) => OrderItem.fromMap(e)).toList();
+  }
 
-  // Future<void> deleteOrder(int orderId) async {
-  //   final db = await _initDatabase();
-  //   await db.delete(
-  //     'orders',
-  //     where: 'orderId = ?',
-  //     whereArgs: [orderId],
-  //   );
-  // }
-
-  // Future<List<OrderItem>> getOrderItemsByOrderId(int orderId) async {
-  //   final db = await database;
-  //   final result = await db.query(
-  //     'OrderItems',
-  //     where: 'orderId = ?',
-  //     whereArgs: [orderId],
-  //   );
-
-  //   return result.map((e) => OrderItem.fromMap(e)).toList();
-  // }
   Future<void> insertOrderItem(OrderItem orderItem) async {
     final db = await database;
     await db.insert(

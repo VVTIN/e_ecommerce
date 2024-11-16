@@ -108,16 +108,17 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 String formattedDate =
                     DateFormat('dd/MM/yyyy').format(order.date);
 
-                final totalAmount = NumberFormat.currency(
+                final amount = NumberFormat.currency(
                   locale: 'vi_VN',
                   symbol: '',
                   decimalDigits: 0,
                 ).format(order.amount);
+             
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6.0),
                   child: Container(
-                    padding: const EdgeInsets.all(12.0),
+                  
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(width: 2, color: Colors.blue),
@@ -140,7 +141,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Tổng tiền : ${totalAmount} VND',
+                            'Tổng tiền : ${amount} VND',
                             style: TextStyle(
                                 color: const Color.fromARGB(255, 21, 84, 134)),
                           ),

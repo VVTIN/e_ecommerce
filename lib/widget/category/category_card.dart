@@ -28,7 +28,7 @@ class _CategoryCardState extends State<CategoryCard> {
     dashboardController.updateIndex(1);
     productController.searchTextEditController.text = widget.category.name;
     productController.searchValue.value = 'cat:${widget.category.name}';
-    productController.getProductByCategory(id: widget.category.id);
+    productController.getProductByCategory(id: widget.category.id!);
     Get.to(() => MainPage());
   }
 

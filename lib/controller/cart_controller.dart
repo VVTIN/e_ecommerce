@@ -52,8 +52,7 @@ class CartController extends GetxController {
   int get totalQuantity =>
       cart.fold(0, (sum, item) => sum + item.quantity.value);
 
-
-    Future<List<CartItem>> getCartItems(int userId) async {
+  Future<List<CartItem>> getCartItems(int userId) async {
     final db = await DatabaseHelper.dataService.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'cart',
@@ -63,12 +62,12 @@ class CartController extends GetxController {
 
     return List.generate(maps.length, (i) {
       return CartItem(
-        productId: maps[i]['productId'],
-        productName: maps[i]['productName'],
-        price: maps[i]['price'],
-        quantity: maps[i]['quantity'],
+        productId: maps[i]['productId'] ?? 0,
+        productName: maps[i]['productName'] ?? '',
+        price: maps[i]['price'] ?? 0.0,
+        quantity: maps[i]['quantity'] ?? 0,
       );
     });
   }
-     
+   
 }

@@ -54,7 +54,7 @@ class _ListCategoriesState extends State<ListCategories> {
                       category.name;
                   productController.searchValue.value = 'cat:${category.name}';
                   productController.getProductByCategory(
-                      id: categoryController.categoryList[index].id);
+                      id: categoryController.categoryList[index].id!);
                 },
                 child: GridTile(
                   footer: Container(
